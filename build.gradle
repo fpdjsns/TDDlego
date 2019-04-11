@@ -25,6 +25,10 @@ dependencies {
 	// spock
 	testCompile('org.spockframework:spock-core:1.1-groovy-2.4')
 	testCompile('org.spockframework:spock-spring:1.1-groovy-2.4')
+	
+	// junit5
+	testImplementation 'org.junit.jupiter:junit-jupiter-api:5.3.1'
+	testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.3.1'
 }
 
 compileKotlin {
@@ -32,6 +36,9 @@ compileKotlin {
 		freeCompilerArgs = ['-Xjsr305=strict']
 		jvmTarget = '1.8'
 	}
+}
+test {
+	useJUnitPlatform()
 }
 
 compileTestKotlin {
