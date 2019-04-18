@@ -1,5 +1,6 @@
 package com.example.study
 
+import org.hamcrest.Matchers.equalTo
 import org.hamcrest.Matchers.instanceOf
 import org.junit.Assert.assertThat
 import org.junit.Before
@@ -15,12 +16,15 @@ class AuthServiceTest {
     fun setUp() {
     }
 
+    val USER_ID = "userId"
+    val WRONG_PASSWORD = "wrongPassword"
+
     @Test
     fun givenInvalidId_throwIllegalArgEx() {
         assertIllegalArgExThrown(null, USER_PASSWORD)
         assertIllegalArgExThrown("", USER_PASSWORD)
-        assertIllegalArgExThrown("userId", null)
-        assertIllegalArgExThrown("userId", "")
+        assertIllegalArgExThrown(USER_ID, null)
+        assertIllegalArgExThrown(USER_ID, "")
     }
 
     @Test
@@ -31,9 +35,16 @@ class AuthServiceTest {
 
     @Test
     fun whenUserFoundButWrongPw_throwWrongPasswordEx() {
-        givenUserExists("userId", USER_PASSWORD)
-        assertExceptionThrown("userId", "wrongPassword", WrongPasswordException::class.java)
-        verifyUserFound("userId")
+        givenUserExists(USER_ID, USER_PASSWORD)
+        assertExceptionThrown(USER_ID, WRONG_PASSWORD, WrongPasswordException::class.java)
+        verifyUserFound(USER_ID)
+    }
+
+    @Test
+    fun whenUserFoundAndRightPw_returnAuth(){
+        givenUserExists(USER_ID, USER_PASSWORD)
+        val auth = authService.authenticate(USER_ID,USER_PASSWORD)
+        assertThat(auth.id, equalTo(USER_ID))
     }
 
     private fun givenUserExists(id: String, password: String) {
@@ -76,18 +87,34 @@ class AuthServiceTest {
 
     class AuthService(var userRepository: UserRepository) {
 
-        fun authenticate(id: String?, password: String?) {
-            if(id.isNullOrEmpty()){
-                throw IllegalArgumentException()
-            }
-            if(password.isNullOrEmpty()){
-                throw IllegalArgumentException()
-            }
-
-            val user: User = findUserById(id)
-                    ?: throw NonExistingUserException()
-            throw WrongPasswordException()
+        fun authenticate(id: String?, password: String?) : Authentication {
+            assertIdAndPw(id, password)
+            val user: User = findUserOrThrowEx(id)
+            throwExIfPwWrong(user, password)
+            return createAuthentication(user)
         }
+
+        private fun assertIdAndPw(id: String?, password: String?) {
+            if (id.isNullOrEmpty()) {
+                throw IllegalArgumentException()
+            }
+            if (password.isNullOrEmpty()) {
+                throw IllegalArgumentException()
+            }
+        }
+
+        private fun findUserOrThrowEx(id: String?): User {
+            val user: User = id?.let{findUserById(id)}
+                    ?: throw NonExistingUserException()
+            return user
+        }
+
+        private fun throwExIfPwWrong(user: User, password: String?) {
+            if (!user.matchPassword(password))
+                throw WrongPasswordException()
+        }
+
+        private fun createAuthentication(user: User) = Authentication(user.id)
 
         private fun findUserById(id: String): User? {
             return userRepository.findById(id)
@@ -97,5 +124,12 @@ class AuthServiceTest {
         }
     }
 
-    data class User(val id: String, val password: String? = null)
+    data class User(val id: String, val password: String? = null) {
+        fun matchPassword(password: String?): Boolean {
+            return password.equals(this.password)
+        }
+    }
+
+    data class Authentication(val id: String)
 }
+
