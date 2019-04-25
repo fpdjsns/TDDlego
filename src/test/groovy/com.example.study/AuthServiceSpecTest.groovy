@@ -1,20 +1,15 @@
 package com.example.study
 
-import com.example.study.domain.User
 import com.example.study.domain.UserRepository
 import com.example.study.security.AuthService
-import com.example.study.security.NonExistingUserException
-import com.example.study.security.WrongPasswordException
-import spock.lang.*
+import spock.lang.Specification
 
-class AuthServiceSpecTest extends Specification{
-
-    def mockUserRepository = GroovyMock(UserRepository.class)
-    def authService = new AuthService(mockUserRepository)
-
-    static def USER_PASSWORD = "userPassword"
-    static def USER_ID = "userId"
-    static def WRONG_PASSWORD = "wrongPassword"
+class AuthServiceSpecTest extends Specification {
+  def mockUserRepository = GroovyMock(UserRepository.class)
+  def authService = new AuthService(mockUserRepository)
+  static def USER_PASSWORD = "userPassword"
+  static def USER_ID = "userId"
+  static def WRONG_PASSWORD = "wrongPassword"
 
 //
 //    def whenUserFoundButWrongPw_throwWrongPasswordEx() {
@@ -36,30 +31,29 @@ class AuthServiceSpecTest extends Specification{
 //    private def verifyUserFound(String id) {
 //        verify(mockUserRepository).findById(id)
 //    }
+  def "assertExceptionThrown"() {
+    given:
+    mockUserRepository.findById(id) >> user
 
-    def "assertExceptionThrown"() {
-        given:
-        mockUserRepository.findById(id) >> user
+    expect:
+    Exception thrownEx = null
 
-        expect:
-        Exception thrownEx = null
+    try {
+      authService.authenticate(id, password)
+    } catch (Exception e) {
+      thrownEx = e
+    }
 
-        try {
-            authService.authenticate(id, password)
-        } catch (Exception e) {
-            thrownEx = e
-        }
+    thrownEx.class == type
 
-        thrownEx.class == type
+    where:
+    id      | password      | user || type
 
-        where:
-        id      | password      | user || type
-
-        // givenInvalidId_throwIllegalArgEx
-        null    | USER_PASSWORD | null                       || IllegalArgumentException.class
-        ""      | USER_PASSWORD | null                       || IllegalArgumentException.class
-        USER_ID | null          | null                       || IllegalArgumentException.class
-        USER_ID | ""            | null                       || IllegalArgumentException.class
+    // givenInvalidId_throwIllegalArgEx
+    null    | USER_PASSWORD | null || IllegalArgumentException.class
+    ""      | USER_PASSWORD | null || IllegalArgumentException.class
+    USER_ID | null          | null || IllegalArgumentException.class
+    USER_ID | ""            | null || IllegalArgumentException.class
 //
 //        // whenUserNotFound_throwNonExistingUserEx()
 //        "noUserId" | USER_PASSWORD | null                    || NonExistingUserException.class
@@ -67,5 +61,5 @@ class AuthServiceSpecTest extends Specification{
 //
 //        // whenUserFoundButWrongPw_throwWrongPasswordEx()
 //        USER_ID | WRONG_PASSWORD | new User(id, password) || WrongPasswordException.class
-    }
+  }
 }
